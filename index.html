@@ -1,0 +1,2041 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Escape de Yungas: Un Nuevo Hogar</title>
+    <!-- Tailwind CSS for UI layout -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Retro Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', monospace, cursive;
+            background-color: #040d08;
+            color: #e0f2fe;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        /* Canvas smooth rendering for crisp pixel art */
+        canvas {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            border: 4px solid #15803d;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8), 0 0 25px rgba(34,197,94,0.35);
+        }
+
+        /* Retro Title & Intro Animations */
+        @keyframes floatTitle {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-8px) scale(1.02); }
+        }
+        .animated-title {
+            animation: floatTitle 3s ease-in-out infinite;
+            text-shadow: 4px 4px 0px #064e3b, -2px -2px 0px #000, 0 0 12px rgba(250, 204, 21, 0.6);
+        }
+
+        @keyframes blinkText {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+        .blink-retro {
+            animation: blinkText 0.9s infinite;
+        }
+
+        .btn-retro {
+            transition: all 0.15s ease-in-out;
+            box-shadow: 0 6px 0 #064e3b, 0 8px 10px rgba(0,0,0,0.5);
+        }
+        .btn-retro:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 0 #064e3b, 0 10px 15px rgba(0,0,0,0.6);
+        }
+        .btn-retro:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #064e3b, 0 4px 5px rgba(0,0,0,0.4);
+        }
+
+        .btn-selected {
+            background-color: #22c55e !important;
+            color: #052e16 !important;
+            border-color: #86efac !important;
+        }
+
+        /* Scanline retro effect overlay */
+        .scanlines {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.28) 50%
+            );
+            background-size: 100% 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-2 relative bg-slate-950">
+
+    <!-- Top Navigation Bar & Audio Control -->
+    <div class="absolute top-3 right-4 z-50 flex items-center gap-3">
+        <button id="btnAudioToggle" onclick="toggleAudio()" class="bg-emerald-950/80 hover:bg-emerald-900 border-2 border-emerald-500 text-yellow-300 p-2 text-xs rounded-lg flex items-center gap-2 transition">
+            <span id="audioIcon">🔊</span>
+            <span id="audioLabel" class="hidden sm:inline">MÚSICA: ON</span>
+        </button>
+    </div>
+
+    <!-- Header / Title Banner -->
+    <header class="text-center mb-2 z-10">
+        <h1 class="animated-title text-lg md:text-2xl font-bold text-yellow-400 tracking-wider">
+            🌿 ESCAPE DE YUNGAS 🌿
+        </h1>
+        <p class="text-xs md:text-sm text-emerald-400 mt-2 tracking-wide font-bold">
+            UN NUEVO HOGAR
+        </p>
+    </header>
+
+    <!-- Main Game Container -->
+    <div class="relative canvas-container max-w-full">
+        <!-- Game Canvas -->
+        <canvas id="gameCanvas" width="800" height="400" class="w-full max-w-[800px] h-auto rounded-lg bg-emerald-950"></canvas>
+        
+        <!-- Scanline Overlay for Arcade Feel -->
+        <div class="scanlines absolute inset-0 pointer-events-none rounded-lg opacity-40"></div>
+
+        <!-- ARCADE INTRO SCREEN OVERLAY -->
+        <div id="arcadeIntro" onclick="dismissArcadeIntro()" class="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 z-30 text-center cursor-pointer transition-opacity duration-700">
+            <div class="text-yellow-400 text-sm md:text-lg mb-2 font-bold tracking-widest animated-title">
+                BOLIVIA ARCADE CLASSICS
+            </div>
+            <div class="text-3xl md:text-5xl text-yellow-300 font-extrabold my-4 tracking-wider animated-title drop-shadow-[0_5px_5px_rgba(0,0,0,0.8)]">
+                ESCAPE DE YUNGAS
+            </div>
+            <div class="text-emerald-400 text-xs md:text-sm my-3 font-semibold">
+                --- UN NUEVO HOGAR ---
+            </div>
+            <div class="mt-8 text-xs text-amber-300 blink-retro tracking-widest">
+                [ PRESIONA CUALQUIER TECLA O TAP PARA INICIAR ]
+            </div>
+        </div>
+
+        <!-- MAIN MENU OVERLAY -->
+        <div id="mainMenu" class="hidden absolute inset-0 bg-slate-950/80 backdrop-blur-xs rounded-lg flex flex-col items-center justify-center p-4 sm:p-6 z-20 text-center">
+            <h2 class="text-sm md:text-lg text-yellow-300 mt-3 mb-2 animated-title">¡AYUDA A TILCAYITO A ESCAPAR!</h2>
+            
+            <p class="text-[9px] sm:text-xs text-emerald-200 max-w-lg mb-2.5 leading-snug bg-slate-900/80 p-2.5 rounded border border-emerald-800">
+                "Después de meses de su descubrimiento, cazadores han ido tras él, para usarlo con fines de lucro maliciosos."
+            </p>
+
+            <!-- Mode Selection -->
+            <div class="mb-3 w-full max-w-md">
+                <span class="text-[10px] sm:text-xs text-gray-300 uppercase block mb-2 font-bold">MODO DE JUEGO:</span>
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="btnModePlayer" onclick="selectMode('player')" class="btn-retro btn-selected bg-emerald-700 hover:bg-emerald-600 text-white py-3 px-2 text-[10px] sm:text-xs rounded border-2 border-emerald-400 font-bold">
+                        🎮 Un Jugador
+                    </button>
+                    <button id="btnModeAI" onclick="selectMode('ai')" class="btn-retro bg-slate-800 hover:bg-slate-700 text-gray-300 py-3 px-2 text-[10px] sm:text-xs rounded border-2 border-slate-600 font-bold">
+                        🤖 La IA Juega Por Ti
+                    </button>
+                </div>
+                <div id="aiBrainSelectorBox" class="hidden mt-2 bg-slate-900/90 border border-cyan-500/70 rounded p-2">
+                    <div class="text-[8px] sm:text-[9px] text-cyan-300 mb-1.5 font-bold">CEREBRO DE LA IA (DAT 155):</div>
+                    <div class="grid grid-cols-3 gap-1.5">
+                        <button type="button" id="btnBrainQL" onclick="selectAIBrain('q_learning')" class="bg-cyan-500 text-slate-950 py-1.5 px-1 text-[8px] rounded border border-cyan-200 font-bold">🧠 Q-Learn</button>
+                        <button type="button" id="btnBrainKNN" onclick="selectAIBrain('knn')" class="bg-slate-800 text-gray-300 py-1.5 px-1 text-[8px] rounded border border-slate-600 font-bold">👤 Imitar KNN</button>
+                        <button type="button" id="btnBrainRules" onclick="selectAIBrain('rules')" class="bg-slate-800 text-gray-300 py-1.5 px-1 text-[8px] rounded border border-slate-600 border font-bold">📏 Reglas</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Difficulty Selection -->
+            <div class="mb-3 w-full max-w-md">
+                <span class="text-[10px] sm:text-xs text-gray-300 uppercase block mb-2 font-bold">DIFICULTAD:</span>
+                <div class="grid grid-cols-2 gap-3">
+                    <button id="btnDiffNormal" onclick="selectDiff('normal')" class="btn-retro btn-selected bg-amber-600 hover:bg-amber-500 text-white py-2 px-2 text-[10px] sm:text-xs rounded border-2 border-amber-300 font-bold">
+                        🌱 Normal
+                    </button>
+                    <button id="btnDiffHard" onclick="selectDiff('hard')" class="btn-retro bg-slate-800 hover:bg-slate-700 text-gray-300 py-2 px-2 text-[10px] sm:text-xs rounded border-2 border-slate-600 font-bold">
+                        🔥 Difícil
+                    </button>
+                </div>
+            </div>
+
+            <!-- Start Button -->
+            <button onclick="triggerCutscenes()" class="btn-retro bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black text-xs md:text-sm py-2.5 px-6 rounded-lg border-2 border-yellow-200 tracking-wider">
+                ¡EMPEZAR CARRERA!
+            </button>
+            
+            <div class="mt-3 text-[9px] sm:text-[10px] text-emerald-400">
+                Controles: [ESPACIO / FLECHA ARRIBA] Saltar | [FLECHA ABAJO] Agacharse
+            </div>
+        </div>
+
+        <!-- STORY CUTSCENE OVERLAY -->
+        <div id="cutsceneOverlay" class="hidden absolute inset-0 bg-slate-950/95 rounded-lg flex flex-col justify-between p-4 z-20">
+            <!-- Cutscene Title Header -->
+            <div class="flex justify-between items-center border-b border-emerald-800 pb-2">
+                <span id="cutsceneStageTitle" class="text-xs text-yellow-400 font-bold">ESCENA 1 / 3</span>
+                <button onclick="skipCutscenes()" class="text-[10px] text-gray-400 hover:text-white underline">SALTAR [ESC]</button>
+            </div>
+
+            <!-- Main Cutscene Dialog Box -->
+            <div class="my-auto flex flex-col items-center">
+                <div class="w-full bg-slate-900 border-2 border-yellow-500/80 p-4 rounded-lg shadow-xl text-left min-h-[90px] flex items-center">
+                    <p id="cutsceneText" class="text-xs sm:text-sm text-amber-200 leading-relaxed font-semibold">
+                        Cargando historia...
+                    </p>
+                </div>
+            </div>
+
+            <!-- Cutscene Navigation Controls -->
+            <div class="flex justify-end pt-2 border-t border-emerald-900">
+                <button id="btnCutsceneNext" onclick="nextCutsceneStage()" class="btn-retro bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs py-2.5 px-6 rounded border border-emerald-300">
+                    SIGUIENTE ▶
+                </button>
+            </div>
+        </div>
+
+        <!-- GAME OVER OVERLAY -->
+        <div id="gameOverMenu" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center p-6 z-20 text-center">
+            <h2 class="text-xl md:text-3xl text-red-500 mb-2 font-bold tracking-wider">¡FIN DEL JUEGO!</h2>
+            <p id="gameOverReason" class="text-xs text-yellow-200 mb-4">Tilcayito tropieza en los Yungas...</p>
+            
+            <div class="bg-slate-900 border-2 border-emerald-600 p-4 rounded-lg mb-5 w-64">
+                <div class="text-[10px] text-gray-400 mb-1">PUNTAJE OBTENIDO</div>
+                <div id="finalScore" class="text-lg text-yellow-400 font-bold mb-2">00000</div>
+                <div class="text-[10px] text-gray-400 mb-1">RÉCORD MÁXIMO</div>
+                <div id="finalHighScore" class="text-xs text-emerald-400 font-bold">00000</div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button onclick="restartGame()" class="btn-retro bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold text-xs py-3 px-6 rounded border-2 border-yellow-200">
+                    🔄 JUGAR DE NUEVO
+                </button>
+                <button onclick="openMenu()" class="btn-retro bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs py-3 px-6 rounded border-2 border-slate-400">
+                    ⚙️ MENÚ PRINCIPAL
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- On-screen Touch Controls for Mobile Devices -->
+    <div class="flex gap-4 mt-3 w-full max-w-[800px] justify-between px-2 sm:hidden">
+        <button id="btnTouchDuck" class="btn-retro flex-1 bg-slate-800 text-blue-300 py-3 text-xs rounded border border-slate-600 font-bold active:bg-slate-700">
+            👇 AGACHARSE
+        </button>
+        <button id="btnTouchJump" class="btn-retro flex-1 bg-emerald-800 text-yellow-300 py-3 text-xs rounded border border-emerald-600 font-bold active:bg-emerald-700">
+            🦘 SALTAR
+        </button>
+    </div>
+
+    <!-- Engine Script -->
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Game State Variables
+        let selectedMode = 'player'; // 'player' | 'ai'
+        let selectedDiff = 'normal'; // 'normal' | 'hard'
+        let gameState = 'INTRO';     // 'INTRO' | 'MENU' | 'CUTSCENE' | 'PLAYING' | 'GAMEOVER'
+        let cutsceneStep = 0;
+
+        // Audio System (Chiptune Web Audio API)
+        let audioCtx = null;
+        let isMuted = false;
+        let musicTimer = null;
+        let musicStep = 0;
+
+        const NOTE_FREQ = {
+            'C4': 261.63, 'D4': 293.66, 'E4': 329.63, 'F4': 349.23, 'G4': 392.00, 'A4': 440.00, 'B4': 493.88,
+            'C5': 523.25, 'D5': 587.33, 'E5': 659.25, 'F5': 698.46, 'G5': 783.99, 'A5': 880.00, 'REST': 0
+        };
+
+        const chiptuneMelody = [
+            'F4', 'A4', 'B4', 'REST', 'F4', 'A4', 'B4', 'REST',
+            'F4', 'A4', 'B4', 'E5', 'D5', 'REST', 'B4', 'C5',
+            'B4', 'G4', 'E4', 'REST', 'D4', 'E4', 'G4', 'E4',
+            'F4', 'A4', 'B4', 'REST', 'C5', 'B4', 'G4', 'E4'
+        ];
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                audioCtx = new AudioContext();
+                startChiptuneMusic();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playTone(freq, type = 'square', duration = 0.15, vol = 0.08) {
+            if (isMuted || !audioCtx || freq <= 0) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        function playSoundEffect(type) {
+            if (isMuted || !audioCtx) return;
+            if (type === 'jump') {
+                playTone(300, 'square', 0.1, 0.1);
+                setTimeout(() => playTone(550, 'square', 0.12, 0.08), 40);
+            } else if (type === 'hit') {
+                playTone(120, 'sawtooth', 0.25, 0.25);
+            } else if (type === 'select') {
+                playTone(600, 'triangle', 0.08, 0.1);
+            }
+        }
+
+        function startChiptuneMusic() {
+            if (musicTimer) clearInterval(musicTimer);
+            musicTimer = setInterval(() => {
+                if (gameState === 'PLAYING' || gameState === 'MENU' || gameState === 'INTRO' || gameState === 'CUTSCENE') {
+                    let note = chiptuneMelody[musicStep % chiptuneMelody.length];
+                    if (NOTE_FREQ[note]) {
+                        playTone(NOTE_FREQ[note], 'triangle', 0.18, 0.06);
+                    }
+                    musicStep++;
+                }
+            }, 210);
+        }
+
+        function toggleAudio() {
+            isMuted = !isMuted;
+            document.getElementById('audioIcon').innerText = isMuted ? '🔇' : '🔊';
+            document.getElementById('audioLabel').innerText = isMuted ? 'MÚSICA: OFF' : 'MÚSICA: ON';
+            if (!isMuted) initAudio();
+        }
+
+        const yungasBgCanvas = document.createElement("canvas");
+        yungasBgCanvas.width = 800;
+        yungasBgCanvas.height = 400;
+        const yctx = yungasBgCanvas.getContext("2d");
+
+        function generateYungasMountainBackground() {
+            let sky = yctx.createLinearGradient(0, 0, 0, 400);
+            sky.addColorStop(0, '#10220c');
+            sky.addColorStop(0.5, '#173312');
+            sky.addColorStop(1, '#0e240c');
+            yctx.fillStyle = sky;
+            yctx.fillRect(0, 0, 800, 400);
+
+            yctx.fillStyle = '#112910';
+            const farTrunks = [40, 110, 210, 310, 410, 520, 630, 720];
+            farTrunks.forEach(x => {
+                yctx.fillRect(x, 40, 26, 310);
+                yctx.beginPath();
+                yctx.arc(x + 13, 50, 40, 0, Math.PI * 2);
+                yctx.fill();
+            });
+
+            const mainTrees = [
+                { x: 30, width: 42, branchX: -30 },
+                { x: 230, width: 48, branchX: 40 },
+                { x: 450, width: 46, branchX: -40 },
+                { x: 670, width: 44, branchX: 35 }
+            ];
+
+            mainTrees.forEach(t => {
+                let treeGrad = yctx.createLinearGradient(t.x, 0, t.x + t.width, 0);
+                treeGrad.addColorStop(0, '#594119');
+                treeGrad.addColorStop(0.5, '#785521');
+                treeGrad.addColorStop(1, '#423011');
+                yctx.fillStyle = treeGrad;
+                
+                yctx.beginPath();
+                yctx.moveTo(t.x, 350);
+                yctx.quadraticCurveTo(t.x + 10, 180, t.x + 5, 0);
+                yctx.lineTo(t.x + t.width - 5, 0);
+                yctx.quadraticCurveTo(t.x + t.width - 10, 180, t.x + t.width, 350);
+                yctx.fill();
+
+                yctx.beginPath();
+                yctx.moveTo(t.x + t.width / 2, 120);
+                yctx.quadraticCurveTo(t.x + t.width / 2 + t.branchX, 70, t.x + t.width / 2 + t.branchX * 1.8, 50);
+                yctx.lineTo(t.x + t.width / 2 + t.branchX * 1.8, 70);
+                yctx.quadraticCurveTo(t.x + t.width / 2 + t.branchX, 95, t.x + t.width / 2, 140);
+                yctx.fill();
+
+                yctx.strokeStyle = '#294017';
+                yctx.lineWidth = 4;
+                yctx.beginPath();
+                yctx.moveTo(t.x + 10, 80);
+                yctx.quadraticCurveTo(t.x - 30, 160, t.x + 20, 220);
+                yctx.stroke();
+
+                yctx.beginPath();
+                yctx.moveTo(t.x + t.width - 5, 110);
+                yctx.quadraticCurveTo(t.x + t.width + 40, 170, t.x + t.width + 5, 240);
+                yctx.stroke();
+            });
+
+            yctx.fillStyle = '#1c4d16';
+            for (let x = -20; x <= 820; x += 45) {
+                yctx.beginPath();
+                yctx.arc(x, 15, 45, 0, Math.PI * 2);
+                yctx.fill();
+            }
+            yctx.fillStyle = '#26691e';
+            for (let x = -10; x <= 830; x += 55) {
+                yctx.beginPath();
+                yctx.arc(x, 5, 35, 0, Math.PI * 2);
+                yctx.fill();
+            }
+
+            yctx.fillStyle = '#185419';
+            for (let x = -10; x <= 820; x += 30) {
+                yctx.beginPath();
+                yctx.arc(x, 320, 28, 0, Math.PI * 2);
+                yctx.fill();
+            }
+            yctx.fillStyle = '#277a28';
+            for (let x = 5; x <= 825; x += 35) {
+                yctx.beginPath();
+                yctx.arc(x, 325, 22, 0, Math.PI * 2);
+                yctx.fill();
+            }
+
+            yctx.fillStyle = '#3d250d';
+            yctx.fillRect(0, 345, 800, 55);
+
+            yctx.fillStyle = '#288c2a';
+            yctx.fillRect(0, 340, 800, 10);
+            for (let x = 0; x < 800; x += 12) {
+                yctx.beginPath();
+                yctx.arc(x + 6, 340, 8, Math.PI, 0);
+                yctx.fill();
+            }
+
+            const groundDecorations = [
+                { type: 'mushroom', x: 75 },
+                { type: 'rock', x: 160 },
+                { type: 'rock', x: 330 },
+                { type: 'mushroom', x: 440 },
+                { type: 'rock', x: 580 },
+                { type: 'mushroom', x: 710 }
+            ];
+
+            groundDecorations.forEach(d => {
+                if (d.type === 'mushroom') {
+                    yctx.fillStyle = '#e2e8f0';
+                    yctx.fillRect(d.x + 5, 328, 8, 14);
+                    yctx.fillStyle = '#dc2626';
+                    yctx.beginPath();
+                    yctx.arc(d.x + 9, 327, 11, Math.PI, 0);
+                    yctx.fill();
+                    yctx.fillStyle = '#ffffff';
+                    yctx.fillRect(d.x + 3, 321, 3, 3);
+                    yctx.fillRect(d.x + 9, 318, 3, 3);
+                    yctx.fillRect(d.x + 13, 322, 3, 3);
+                } else if (d.type === 'rock') {
+                    yctx.fillStyle = '#5c6559';
+                    yctx.fillRect(d.x, 332, 22, 12);
+                    yctx.fillRect(d.x + 4, 327, 14, 8);
+                    yctx.fillStyle = '#22c55e';
+                    yctx.fillRect(d.x + 5, 327, 10, 3);
+                }
+            });
+        }
+        generateYungasMountainBackground();
+
+        let menuBgX = 0;
+
+        let gameSpeed = 6;
+        let baseSpeed = 6;
+        let maxSpeed = 14;
+        let score = 0;
+        let highScore = localStorage.getItem("tilcayito_high_score") || 0;
+
+        const keys = { jump: false, duck: false };
+
+        const tilcayito = {
+            x: 80,
+            y: 250,
+            width: 60,
+            height: 60,
+            normalHeight: 60,
+            duckHeight: 32,
+            vy: 0,
+            gravity: 0.75,
+            jumpForce: -13.5,
+            groundY: 250,
+            isGrounded: true,
+            isDucking: false,
+            animFrame: 0,
+            animTimer: 0,
+
+            reset() {
+                this.y = this.groundY;
+                this.vy = 0;
+                this.isGrounded = true;
+                this.isDucking = false;
+                this.height = this.normalHeight;
+            },
+
+            jump() {
+                if (this.isGrounded) {
+                    this.vy = this.jumpForce;
+                    this.isGrounded = false;
+                    playSoundEffect('jump');
+                }
+            },
+
+            duck(shouldDuck) {
+                if (this.isGrounded) {
+                    this.isDucking = shouldDuck;
+                    if (shouldDuck) {
+                        this.height = this.duckHeight;
+                        this.y = this.groundY + (this.normalHeight - this.duckHeight);
+                    } else {
+                        this.height = this.normalHeight;
+                        this.y = this.groundY;
+                    }
+                }
+            },
+
+            update() {
+                if (!this.isGrounded) {
+                    this.vy += this.gravity;
+                    this.y += this.vy;
+
+                    if (keys.duck) {
+                        this.vy += 0.8;
+                    }
+
+                    if (this.y >= this.groundY) {
+                        this.y = this.groundY;
+                        this.vy = 0;
+                        this.isGrounded = true;
+                    }
+                } else {
+                    this.duck(keys.duck);
+                }
+
+                this.animTimer++;
+                if (this.animTimer % 5 === 0) {
+                    this.animFrame = (this.animFrame + 1) % 4;
+                }
+            },
+
+            draw(overrideX = null, overrideY = null) {
+                let drawX = overrideX !== null ? overrideX : this.x;
+                let drawY = overrideY !== null ? overrideY : this.y;
+
+                ctx.save();
+                ctx.translate(Math.floor(drawX), Math.floor(drawY));
+
+                const P = {
+                    outline: '#24160d',
+                    furBase: '#b88746',
+                    furDark: '#8f602b',
+                    stripe: '#523719',
+                    belly: '#eddac2',
+                    eye: '#1c1712',
+                    eyeWhite: '#ffffff',
+                    earInner: '#d9a37e',
+                    whisker: '#f8fafc'
+                };
+
+                if (this.isDucking) {
+                    let frameOffset = Math.floor(Math.sin(this.animFrame * Math.PI / 2) * 1.5);
+                    
+                    ctx.fillStyle = P.outline;
+                    ctx.fillRect(-16, 12 + frameOffset, 16, 10);
+                    ctx.fillStyle = P.furBase;
+                    ctx.fillRect(-14, 14 + frameOffset, 14, 6);
+                    ctx.fillStyle = P.stripe;
+                    ctx.fillRect(-10, 14 + frameOffset, 3, 6);
+                    ctx.fillRect(-4, 14 + frameOffset, 3, 6);
+
+                    ctx.fillStyle = P.outline;
+                    ctx.fillRect(-2, 14, 52, 22);
+                    ctx.fillStyle = P.furBase;
+                    ctx.fillRect(0, 16, 48, 18);
+                    ctx.fillStyle = P.belly;
+                    ctx.fillRect(10, 26, 30, 6);
+                    ctx.fillStyle = P.stripe;
+                    ctx.fillRect(8, 18, 4, 4);
+                    ctx.fillRect(20, 17, 5, 4);
+                    ctx.fillRect(32, 19, 4, 4);
+
+                    ctx.fillStyle = P.outline;
+                    ctx.fillRect(36, 4, 8, 8);
+                    ctx.fillRect(48, 4, 8, 8);
+                    ctx.fillStyle = P.furBase;
+                    ctx.fillRect(38, 6, 6, 6);
+                    ctx.fillRect(50, 6, 6, 6);
+
+                    ctx.fillStyle = P.outline;
+                    ctx.fillRect(34, 10, 28, 22);
+                    ctx.fillStyle = P.furBase;
+                    ctx.fillRect(36, 12, 24, 18);
+
+                    ctx.fillStyle = P.belly;
+                    ctx.fillRect(44, 20, 14, 8);
+                    ctx.fillStyle = P.stripe;
+                    ctx.fillRect(50, 20, 3, 3);
+
+                    ctx.fillStyle = P.eyeWhite;
+                    ctx.fillRect(40, 14, 5, 6);
+                    ctx.fillStyle = P.eye;
+                    ctx.fillRect(42, 15, 3, 4);
+
+                    ctx.fillStyle = P.eyeWhite;
+                    ctx.fillRect(49, 14, 5, 6);
+                    ctx.fillStyle = P.eye;
+                    ctx.fillRect(51, 15, 3, 4);
+
+                    ctx.fillStyle = P.whisker;
+                    ctx.fillRect(56, 21, 6, 1);
+                    ctx.fillRect(56, 24, 6, 1);
+                    ctx.fillRect(39, 21, 5, 1);
+
+                    ctx.fillStyle = P.outline;
+                    ctx.fillRect(4 + frameOffset, 30, 10, 8);
+                    ctx.fillRect(36 - frameOffset, 30, 10, 8);
+                    ctx.fillStyle = P.furBase;
+                    ctx.fillRect(6 + frameOffset, 31, 7, 5);
+                    ctx.fillRect(38 - frameOffset, 31, 7, 5);
+
+                } else if (!this.isGrounded) {
+                    let isAscending = this.vy < 0;
+                    let tailAngle = isAscending ? 10 : -8;
+
+                    ctx.fillStyle = P.outline;
+                    ctx.fillRect(-14, 6 + tailAngle, 10, 22);
+                    ctx.fillStyle = P.furBase;
+                    ctx.fillRect(-12, 8 + tailAngle, 6, 18);
+
+                    ctx.fillStyle = P.outline;
+                    ctx.fillRect(-4, 12, 48, 26);
+                    ctx.fillStyle = P.furBase;
+                    ctx.fillRect(-2, 14, 44, 22);
+                    ctx.fillStyle = P.belly;
+                    ctx.fillRect(8, 28, 26, 6);
+
+                    ctx.fillStyle = P.outline;
+                    ctx.fillRect(30, 0, 30, 28);
+                    ctx.fillStyle = P.furBase;
+                    ctx.fillRect(32, 2, 26, 24);
+
+                    ctx.fillStyle = P.outline;
+                    ctx.fillRect(32, -12, 8, 14);
+                    ctx.fillRect(48, -12, 8, 14);
+                    ctx.fillStyle = P.furBase;
+                    ctx.fillRect(34, -10, 5, 10);
+                    ctx.fillRect(50, -10, 5, 10);
+
+                    ctx.fillStyle = P.eyeWhite;
+                    ctx.fillRect(38, 7, 6, 8);
+                    ctx.fillStyle = P.eye;
+                    ctx.fillRect(40, 8, 4, 6);
+                    ctx.fillStyle = P.eyeWhite;
+                    ctx.fillRect(42, 9, 2, 2);
+
+                    ctx.fillStyle = P.eyeWhite;
+                    ctx.fillRect(47, 7, 6, 8);
+                    ctx.fillStyle = P.eye;
+                    ctx.fillRect(49, 8, 4, 6);
+                    ctx.fillStyle = P.eyeWhite;
+                    ctx.fillRect(51, 9, 2, 2);
+
+                    ctx.fillStyle = P.belly;
+                    ctx.fillRect(42, 16, 14, 7);
+                    ctx.fillStyle = P.stripe;
+                    ctx.fillRect(48, 16, 3, 3);
+
+                    ctx.fillStyle = P.whisker;
+                    ctx.fillRect(54, 17, 7, 1);
+                    ctx.fillRect(54, 20, 7, 1);
+                    ctx.fillRect(36, 17, 6, 1);
+
+                    ctx.fillStyle = P.outline;
+                    if (isAscending) {
+                        ctx.fillRect(-10, 28, 14, 12);
+                        ctx.fillRect(36, 30, 16, 12);
+                        ctx.fillStyle = P.furBase;
+                        ctx.fillRect(-8, 30, 10, 8);
+                        ctx.fillRect(38, 32, 12, 8);
+                    } else {
+                        ctx.fillRect(-4, 30, 12, 16);
+                        ctx.fillRect(32, 32, 12, 16);
+                        ctx.fillStyle = P.furBase;
+                        ctx.fillRect(-2, 32, 8, 12);
+                        ctx.fillRect(34, 34, 8, 12);
+                    }
+
+                } else {
+                    let bobY = (this.animFrame % 2 === 0) ? 0 : 2;
+                    let tailSway = Math.floor(Math.sin(this.animTimer * 0.4) * 3);
+
+                    ctx.fillStyle = P.outline;
+                    ctx.fillRect(-14, -14 + tailSway, 10, 30);
+                    ctx.fillStyle = P.furBase;
+                    ctx.fillRect(-12, -12 + tailSway, 6, 26);
+                    ctx.fillStyle = P.stripe;
+                    ctx.fillRect(-12, -8 + tailSway, 6, 3);
+                    ctx.fillRect(-12, -2 + tailSway, 6, 3);
+                    ctx.fillRect(-12, 4 + tailSway, 6, 3);
+
+                    ctx.fillStyle = P.outline;
+                    ctx.fillRect(-2, 10 + bobY, 44, 28);
+                    ctx.fillStyle = P.furBase;
+                    ctx.fillRect(0, 12 + bobY, 40, 24);
+                    ctx.fillStyle = P.belly;
+                    ctx.fillRect(10, 26 + bobY, 24, 8);
+
+                    ctx.fillStyle = P.stripe;
+                    ctx.fillRect(6, 14 + bobY, 4, 8);
+                    ctx.fillRect(14, 13 + bobY, 5, 10);
+                    ctx.fillRect(24, 14 + bobY, 4, 7);
+                    ctx.fillRect(4, 24 + bobY, 4, 4);
+                    ctx.fillRect(12, 22 + bobY, 5, 4);
+                    ctx.fillRect(22, 25 + bobY, 4, 4);
+
+                    ctx.fillStyle = P.outline;
+                    ctx.fillRect(26, -2 + bobY, 32, 28);
+                    ctx.fillStyle = P.furBase;
+                    ctx.fillRect(28, 0 + bobY, 28, 24);
+
+                    ctx.fillStyle = P.stripe;
+                    ctx.fillRect(26, 10 + bobY, 4, 3);
+
+                    ctx.fillStyle = P.outline;
+                    ctx.fillRect(28, -16 + bobY, 9, 16);
+                    ctx.fillRect(45, -16 + bobY, 9, 16);
+                    ctx.fillStyle = P.furBase;
+                    ctx.fillRect(30, -14 + bobY, 6, 14);
+                    ctx.fillRect(47, -14 + bobY, 6, 14);
+                    ctx.fillStyle = P.earInner;
+                    ctx.fillRect(31, -11 + bobY, 4, 9);
+                    ctx.fillRect(48, -11 + bobY, 4, 9);
+
+                    ctx.fillStyle = P.eyeWhite;
+                    ctx.fillRect(36, 5 + bobY, 8, 9);
+                    ctx.fillStyle = P.eye;
+                    ctx.fillRect(39, 6 + bobY, 4, 7);
+                    ctx.fillStyle = P.eyeWhite;
+                    ctx.fillRect(41, 7 + bobY, 2, 2);
+
+                    ctx.fillStyle = P.eyeWhite;
+                    ctx.fillRect(46, 5 + bobY, 8, 9);
+                    ctx.fillStyle = P.eye;
+                    ctx.fillRect(49, 6 + bobY, 4, 7);
+                    ctx.fillStyle = P.eyeWhite;
+                    ctx.fillRect(51, 7 + bobY, 2, 2);
+
+                    ctx.fillStyle = P.belly;
+                    ctx.fillRect(40, 14 + bobY, 14, 8);
+                    ctx.fillStyle = P.stripe;
+                    ctx.fillRect(46, 14 + bobY, 3, 3);
+                    ctx.fillRect(44, 19 + bobY, 6, 2);
+
+                    ctx.fillStyle = P.whisker;
+                    ctx.fillRect(53, 15 + bobY, 7, 1);
+                    ctx.fillRect(53, 18 + bobY, 7, 1);
+                    ctx.fillRect(34, 15 + bobY, 6, 1);
+                    ctx.fillRect(34, 18 + bobY, 6, 1);
+
+                    ctx.fillStyle = P.outline;
+                    let frontLegX = 30;
+                    let backLegX = 4;
+                    let f1Y = 0, f2Y = 0, b1Y = 0, b2Y = 0;
+
+                    if (this.animFrame === 0) {
+                        f1Y = 18; f2Y = 10; b1Y = 10; b2Y = 18;
+                    } else if (this.animFrame === 1) {
+                        f1Y = 14; f2Y = 14; b1Y = 14; b2Y = 14;
+                    } else if (this.animFrame === 2) {
+                        f1Y = 10; f2Y = 18; b1Y = 18; b2Y = 10;
+                    } else if (this.animFrame === 3) {
+                        f1Y = 16; f2Y = 12; b1Y = 12; b2Y = 16;
+                    }
+
+                    ctx.fillStyle = P.furDark;
+                    ctx.fillRect(backLegX - 2, 32 + bobY, 8, b1Y);
+                    ctx.fillRect(frontLegX - 2, 32 + bobY, 8, f1Y);
+                    ctx.fillStyle = P.outline;
+                    ctx.fillRect(backLegX - 4, 32 + b1Y + bobY, 9, 4);
+                    ctx.fillRect(frontLegX - 4, 32 + f1Y + bobY, 9, 4);
+
+                    ctx.fillStyle = P.furBase;
+                    ctx.fillRect(backLegX + 6, 32 + bobY, 8, b2Y);
+                    ctx.fillRect(frontLegX + 6, 32 + bobY, 8, f2Y);
+                    ctx.fillStyle = P.outline;
+                    ctx.fillRect(backLegX + 5, 32 + b2Y + bobY, 9, 4);
+                    ctx.fillRect(frontLegX + 5, 32 + f2Y + bobY, 9, 4);
+                }
+
+                ctx.restore();
+            }
+        };
+
+        function drawSleepingTilcayitoIllustration(cx, cy) {
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            ctx.fillStyle = '#09150e';
+            ctx.fillRect(-120, -90, 240, 180);
+            ctx.strokeStyle = '#10b981';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(-120, -90, 240, 180);
+
+            ctx.fillStyle = '#cbd5e1';
+            ctx.beginPath();
+            ctx.ellipse(0, 10, 95, 55, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = '#f8fafc';
+            ctx.beginPath();
+            ctx.ellipse(0, 14, 82, 42, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            const P = {
+                outline: '#24160d',
+                furBase: '#b88746',
+                stripe: '#523719',
+                tailTip: '#1c1712',
+                whisker: '#94a3b8'
+            };
+
+            ctx.fillStyle = P.outline;
+            ctx.beginPath();
+            ctx.ellipse(0, 18, 62, 36, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = P.furBase;
+            ctx.beginPath();
+            ctx.ellipse(0, 20, 56, 30, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = P.stripe;
+            ctx.fillRect(-20, -2, 6, 18);
+            ctx.fillRect(-6, -4, 6, 20);
+            ctx.fillRect(8, -2, 6, 18);
+            ctx.fillRect(22, 2, 6, 16);
+
+            ctx.fillStyle = P.outline;
+            ctx.fillRect(22, -2, 34, 30);
+            ctx.fillStyle = P.furBase;
+            ctx.fillRect(24, 0, 30, 26);
+
+            ctx.fillStyle = P.outline;
+            ctx.fillRect(26, -16, 10, 18);
+            ctx.fillRect(44, -14, 10, 16);
+            ctx.fillStyle = P.furBase;
+            ctx.fillRect(28, -14, 6, 14);
+            ctx.fillRect(46, -12, 6, 12);
+
+            ctx.strokeStyle = P.outline;
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(34, 8); ctx.quadraticCurveTo(38, 12, 42, 8);
+            ctx.moveTo(46, 8); ctx.quadraticCurveTo(50, 12, 54, 8);
+            ctx.stroke();
+
+            ctx.strokeStyle = P.whisker;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(50, 14); ctx.lineTo(66, 12);
+            ctx.moveTo(50, 17); ctx.lineTo(68, 18);
+            ctx.stroke();
+
+            ctx.fillStyle = P.outline;
+            ctx.fillRect(-35, 20, 64, 16);
+            ctx.fillStyle = P.furBase;
+            ctx.fillRect(-32, 22, 58, 12);
+            ctx.fillStyle = P.tailTip;
+            ctx.fillRect(2, 22, 20, 12);
+            ctx.fillStyle = P.stripe;
+            ctx.fillRect(-18, 22, 6, 12);
+            ctx.fillRect(-6, 22, 6, 12);
+
+            ctx.restore();
+        }
+
+        function drawTilcayitoPortrait(cx, cy, isAlert = false) {
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            ctx.fillStyle = '#000';
+            ctx.fillRect(-120, -90, 240, 180);
+            ctx.strokeStyle = isAlert ? '#ef4444' : '#10b981';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(-120, -90, 240, 180);
+
+            let bodyColor = '#d97706';
+            let darkSpot = '#451a03';
+            let eyeColor = isAlert ? '#f59e0b' : '#22c55e';
+
+            ctx.fillStyle = bodyColor;
+            ctx.beginPath();
+            ctx.ellipse(-10, 25, 75, 45, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(35, -20, 42, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = bodyColor;
+            ctx.fillRect(15, -70, 16, 22);
+            ctx.fillRect(52, -70, 16, 22);
+            ctx.fillStyle = darkSpot;
+            ctx.fillRect(19, -64, 8, 14);
+            ctx.fillRect(56, -64, 8, 14);
+
+            ctx.fillStyle = darkSpot;
+            for (let i = 0; i < 14; i++) {
+                let sx = -60 + (i * 11) % 110;
+                let sy = 5 + (i * 17) % 50;
+                ctx.fillRect(sx, sy, 8, 8);
+            }
+
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(22, -30, 15, 15);
+            ctx.fillRect(45, -30, 15, 15);
+            ctx.fillStyle = eyeColor;
+            ctx.fillRect(25, -27, 9, 9);
+            ctx.fillRect(48, -27, 9, 9);
+            ctx.fillStyle = '#000';
+            ctx.fillRect(28, -25, 4, 6);
+            ctx.fillRect(51, -25, 4, 6);
+
+            ctx.fillStyle = '#eddac2';
+            ctx.fillRect(32, -6, 28, 20);
+            ctx.fillStyle = '#523719';
+            ctx.fillRect(42, -6, 8, 6);
+
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(30, 2); ctx.lineTo(-5, -6);
+            ctx.moveTo(30, 7); ctx.lineTo(-10, 8);
+            ctx.moveTo(60, 2); ctx.lineTo(95, -6);
+            ctx.moveTo(60, 7); ctx.lineTo(100, 8);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function drawHuntersIllustration(cx, cy) {
+            ctx.save();
+            ctx.translate(cx, cy);
+
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(-120, -90, 240, 180);
+            ctx.strokeStyle = '#dc2626';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(-120, -90, 240, 180);
+
+            ctx.fillStyle = 'rgba(220, 38, 38, 0.25)';
+            ctx.fillRect(-116, -86, 232, 172);
+
+            ctx.fillStyle = '#1e293b';
+            ctx.fillRect(-65, -30, 40, 75);
+            ctx.fillRect(-55, -55, 20, 25);
+
+            ctx.fillRect(30, -20, 45, 85);
+            ctx.fillRect(42, -45, 22, 25);
+
+            ctx.strokeStyle = '#ef4444';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(0, 0, 35, 0, Math.PI * 2);
+            ctx.moveTo(-45, 0); ctx.lineTo(45, 0);
+            ctx.moveTo(0, -45); ctx.lineTo(0, 45);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        let obstacles = [];
+        let obstacleTimer = 0;
+        let minSpawnInterval = 75;
+
+        class Obstacle {
+            constructor(type) {
+                this.type = type;
+                this.markedForDeletion = false;
+
+                if (type === 'rock') {
+                    this.width = 35;
+                    this.height = 30;
+                    this.x = 800;
+                    this.y = tilcayito.groundY + (tilcayito.normalHeight - this.height);
+                } else if (type === 'log') {
+                    this.width = 50;
+                    this.height = 38;
+                    this.x = 800;
+                    this.y = tilcayito.groundY + (tilcayito.normalHeight - this.height);
+                } else if (type === 'bird') {
+                    this.width = 42;
+                    this.height = 28;
+                    this.x = 800;
+                    let isHigh = Math.random() < 0.55;
+                    this.y = isHigh ? 225 : 265;
+                    this.animFrame = 0;
+                    this.animTimer = 0;
+                }
+            }
+
+            update() {
+                this.x -= gameSpeed;
+                if (this.x + this.width < 0) {
+                    this.markedForDeletion = true;
+                }
+
+                if (this.type === 'bird') {
+                    this.animTimer++;
+                    if (this.animTimer % 7 === 0) {
+                        this.animFrame = (this.animFrame + 1) % 2;
+                    }
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(Math.floor(this.x), Math.floor(this.y));
+
+                if (this.type === 'rock') {
+                    ctx.fillStyle = '#475569';
+                    ctx.fillRect(0, 8, 35, 22);
+                    ctx.fillRect(6, 0, 22, 30);
+                    ctx.fillStyle = '#64748b';
+                    ctx.fillRect(4, 4, 10, 8);
+                    ctx.fillStyle = '#334155';
+                    ctx.fillRect(20, 18, 12, 10);
+                } else if (this.type === 'log') {
+                    ctx.fillStyle = '#78350f';
+                    ctx.fillRect(0, 6, 50, 32);
+                    ctx.fillStyle = '#451a03';
+                    ctx.fillRect(40, 6, 10, 32);
+                    ctx.fillStyle = '#d97706';
+                    ctx.fillRect(43, 12, 4, 20);
+                    ctx.fillStyle = '#16a34a';
+                    ctx.fillRect(4, 2, 32, 6);
+                    ctx.fillRect(12, 0, 14, 4);
+                } else if (this.type === 'bird') {
+                    let wingUp = (this.animFrame === 0);
+                    ctx.fillStyle = '#0284c7';
+                    ctx.fillRect(10, 8, 22, 14);
+                    ctx.fillStyle = '#eab308';
+                    ctx.fillRect(18, 14, 12, 8);
+                    ctx.fillStyle = '#0284c7';
+                    ctx.fillRect(28, 4, 10, 12);
+                    ctx.fillStyle = '#dc2626';
+                    ctx.fillRect(36, 8, 6, 6);
+                    ctx.fillStyle = '#fff';
+                    ctx.fillRect(32, 6, 3, 3);
+                    ctx.fillStyle = '#22c55e';
+                    if (wingUp) {
+                        ctx.fillRect(14, -6, 10, 14);
+                        ctx.fillRect(10, -10, 6, 8);
+                    } else {
+                        ctx.fillRect(14, 18, 10, 12);
+                        ctx.fillRect(10, 24, 6, 6);
+                    }
+                    ctx.fillStyle = '#ef4444';
+                    ctx.fillRect(0, 10, 12, 4);
+                }
+
+                ctx.restore();
+            }
+        }
+
+        function handleObstacles() {
+            obstacleTimer++;
+            let currentMinInterval = Math.max(45, minSpawnInterval - Math.floor(score / 150));
+
+            if (obstacleTimer > currentMinInterval) {
+                if (Math.random() < 0.75) {
+                    let types = ['rock', 'log', 'bird'];
+                    let randType = types[Math.floor(Math.random() * types.length)];
+                    obstacles.push(new Obstacle(randType));
+
+                    if (selectedDiff === 'hard' && Math.random() < 0.35 && score > 200) {
+                        setTimeout(() => {
+                            if (gameState === 'PLAYING') {
+                                obstacles.push(new Obstacle('rock'));
+                            }
+                        }, 380);
+                    }
+
+                    obstacleTimer = 0;
+                }
+            }
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].update();
+                obstacles[i].draw();
+
+                let obs = obstacles[i];
+                let p = tilcayito;
+                let hitPadding = 6;
+
+                if (
+                    p.x + hitPadding < obs.x + obs.width - hitPadding &&
+                    p.x + p.width - hitPadding > obs.x + hitPadding &&
+                    p.y + hitPadding < obs.y + obs.height - hitPadding &&
+                    p.y + p.height - hitPadding > obs.y + hitPadding
+                ) {
+                    playSoundEffect('hit');
+                    triggerGameOver("¡Tilcayito tropieza intentando escapar!");
+                }
+
+                if (obs.markedForDeletion) {
+                    obstacles.splice(i, 1);
+                }
+            }
+        }
+
+        function updateAI() {
+            if (selectedMode !== 'ai' || gameState !== 'PLAYING') return;
+            if (typeof window.dat155RunAI === 'function') {
+                const handled = window.dat155RunAI();
+                if (handled) return;
+            }
+
+            let upcoming = obstacles.find(o => o.x + o.width > tilcayito.x);
+
+            if (upcoming) {
+                let dist = upcoming.x - (tilcayito.x + tilcayito.width);
+                let reactionDistance = gameSpeed * 15;
+
+                if (upcoming.type === 'bird' && upcoming.y < 250) {
+                    if (dist < reactionDistance + 25) {
+                        keys.duck = true;
+                        keys.jump = false;
+                    } else {
+                        keys.duck = false;
+                    }
+                } else {
+                    keys.duck = false;
+                    if (dist < reactionDistance && tilcayito.isGrounded) {
+                        tilcayito.jump();
+                    }
+                }
+            } else {
+                keys.duck = false;
+                keys.jump = false;
+            }
+        }
+
+        function drawHUD() {
+            ctx.fillStyle = '#facc15';
+            ctx.font = '12px "Press Start 2P"';
+            ctx.textAlign = 'right';
+            
+            let scoreStr = String(Math.floor(score)).padStart(5, '0');
+            let highStr = String(Math.floor(highScore)).padStart(5, '0');
+
+            ctx.fillText(`HI ${highStr}  SC ${scoreStr}`, 780, 30);
+
+            ctx.textAlign = 'left';
+            ctx.fillStyle = selectedMode === 'ai' ? '#38bdf8' : '#4ade80';
+            ctx.fillText(selectedMode === 'ai' ? '🤖 MODO IA' : '🎮 JUGADOR', 20, 30);
+            if (typeof window.dat155DrawCanvasHUD === 'function') {
+                window.dat155DrawCanvasHUD(ctx);
+            }
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, 800, 400);
+
+            menuBgX = (menuBgX - (gameState === 'PLAYING' ? gameSpeed * 0.4 : 1.2)) % 800;
+            ctx.drawImage(yungasBgCanvas, Math.floor(menuBgX), 0);
+            ctx.drawImage(yungasBgCanvas, Math.floor(menuBgX) + 800, 0);
+
+            if (gameState === 'PLAYING') {
+                gameSpeed = Math.min(maxSpeed, baseSpeed + score * 0.003);
+                score += 0.15;
+
+                updateAI();
+
+                tilcayito.update();
+                tilcayito.draw();
+
+                handleObstacles();
+                drawHUD();
+            } else if (gameState === 'MENU' || gameState === 'INTRO') {
+                tilcayito.animTimer++;
+                if (tilcayito.animTimer % 5 === 0) tilcayito.animFrame = (tilcayito.animFrame + 1) % 4;
+                tilcayito.draw(120, 250);
+            } else if (gameState === 'CUTSCENE') {
+                if (cutsceneStep === 0) {
+                    drawSleepingTilcayitoIllustration(400, 150);
+                } else if (cutsceneStep === 1) {
+                    drawHuntersIllustration(400, 150);
+                } else if (cutsceneStep === 2) {
+                    drawTilcayitoPortrait(400, 150, true);
+                }
+            }
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function dismissArcadeIntro() {
+            const introEl = document.getElementById('arcadeIntro');
+            if (!introEl || introEl.dataset.dismissed === '1') return;
+            introEl.dataset.dismissed = '1';
+            initAudio();
+            playSoundEffect('select');
+            introEl.classList.add('opacity-0');
+            introEl.classList.add('hidden');
+            document.getElementById('mainMenu').classList.remove('hidden');
+            gameState = 'MENU';
+        }
+
+        function triggerCutscenes() {
+            initAudio();
+            playSoundEffect('select');
+            const introEl = document.getElementById('arcadeIntro');
+            if (introEl) {
+                introEl.dataset.dismissed = '1';
+                introEl.classList.add('hidden');
+            }
+            document.getElementById('mainMenu').classList.add('hidden');
+            document.getElementById('cutsceneOverlay').classList.remove('hidden');
+            gameState = 'CUTSCENE';
+            cutsceneStep = 0;
+            updateCutsceneDisplay();
+        }
+
+        const cutsceneData = [
+            {
+                stage: "ESCENA 1 / 3",
+                text: "🌿 El Tilcayo en un día normal en su hábitat en los Yungas..."
+            },
+            {
+                stage: "ESCENA 2 / 3",
+                text: "⚠️ De pronto es atacado por cazadores que buscan su piel y carne para fines de lucro."
+            },
+            {
+                stage: "ESCENA 3 / 3",
+                text: "🏃‍♂️ Ahora solo toca correr en la jungla evitando los peligros que este afronta hasta llegar a un nuevo hogar..."
+            }
+        ];
+
+        function updateCutsceneDisplay() {
+            let data = cutsceneData[cutsceneStep];
+            document.getElementById('cutsceneStageTitle').innerText = data.stage;
+            document.getElementById('cutsceneText').innerText = data.text;
+
+            if (cutsceneStep === 2) {
+                document.getElementById('btnCutsceneNext').innerText = "¡EMPEZAR JUEGO! 🚀";
+            } else {
+                document.getElementById('btnCutsceneNext').innerText = "SIGUIENTE ▶";
+            }
+        }
+
+        function nextCutsceneStage() {
+            playSoundEffect('select');
+            if (cutsceneStep < 2) {
+                cutsceneStep++;
+                updateCutsceneDisplay();
+            } else {
+                startActualRunner();
+            }
+        }
+
+        function skipCutscenes() {
+            playSoundEffect('select');
+            startActualRunner();
+        }
+
+        function startActualRunner() {
+            document.getElementById('cutsceneOverlay').classList.add('hidden');
+            document.getElementById('gameOverMenu').classList.add('hidden');
+
+            baseSpeed = selectedDiff === 'hard' ? 8.5 : 6.0;
+            gameSpeed = baseSpeed;
+            minSpawnInterval = selectedDiff === 'hard' ? 55 : 75;
+
+            score = 0;
+            obstacles = [];
+            obstacleTimer = 0;
+            tilcayito.reset();
+
+            gameState = 'PLAYING';
+        }
+
+        function triggerGameOver(reason) {
+            gameState = 'GAMEOVER';
+            if (typeof window.dat155OnGameOver === 'function') {
+                window.dat155OnGameOver();
+            }
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem("tilcayito_high_score", Math.floor(highScore));
+            }
+
+            document.getElementById('gameOverReason').innerText = reason;
+            document.getElementById('finalScore').innerText = String(Math.floor(score)).padStart(5, '0');
+            document.getElementById('finalHighScore').innerText = String(Math.floor(highScore)).padStart(5, '0');
+            document.getElementById('gameOverMenu').classList.remove('hidden');
+        }
+
+        function restartGame() {
+            startActualRunner();
+        }
+
+        function openMenu() {
+            const introEl = document.getElementById('arcadeIntro');
+            if (introEl) introEl.dataset.dismissed = '1';
+            document.getElementById('gameOverMenu').classList.add('hidden');
+            document.getElementById('mainMenu').classList.remove('hidden');
+            gameState = 'MENU';
+        }
+
+        function selectMode(mode) {
+            playSoundEffect('select');
+            selectedMode = mode;
+            document.getElementById('btnModePlayer').className = mode === 'player' ? 'btn-retro btn-selected bg-emerald-700 text-white py-3 px-2 text-[10px] sm:text-xs rounded border-2 border-emerald-400 font-bold' : 'btn-retro bg-slate-800 text-gray-300 py-3 px-2 text-[10px] sm:text-xs rounded border-2 border-slate-600 font-bold';
+            document.getElementById('btnModeAI').className = mode === 'ai' ? 'btn-retro btn-selected bg-emerald-700 text-white py-3 px-2 text-[10px] sm:text-xs rounded border-2 border-emerald-400 font-bold' : 'btn-retro bg-slate-800 text-gray-300 py-3 px-2 text-[10px] sm:text-xs rounded border-2 border-slate-600 font-bold';
+            const brainBox = document.getElementById('aiBrainSelectorBox');
+            if (brainBox) {
+                if (mode === 'ai') brainBox.classList.remove('hidden');
+                else brainBox.classList.add('hidden');
+            }
+        }
+
+        function selectDiff(diff) {
+            playSoundEffect('select');
+            selectedDiff = diff;
+            document.getElementById('btnDiffNormal').className = diff === 'normal' ? 'btn-retro btn-selected bg-amber-600 text-white py-2 px-2 text-[10px] sm:text-xs rounded border-2 border-amber-300 font-bold' : 'btn-retro bg-slate-800 text-gray-300 py-2 px-2 text-[10px] sm:text-xs rounded border-2 border-slate-600 font-bold';
+            document.getElementById('btnDiffHard').className = diff === 'hard' ? 'btn-retro btn-selected bg-amber-600 text-white py-2 px-2 text-[10px] sm:text-xs rounded border-2 border-amber-300 font-bold' : 'btn-retro bg-slate-800 text-gray-300 py-2 px-2 text-[10px] sm:text-xs rounded border-2 border-slate-600 font-bold';
+        }
+
+        window.addEventListener('keydown', (e) => {
+            initAudio();
+            if (gameState === 'INTRO') {
+                dismissArcadeIntro();
+                return;
+            }
+            if (gameState === 'CUTSCENE') {
+                if (e.code === 'Escape') skipCutscenes();
+                if (e.code === 'Space' || e.code === 'Enter') nextCutsceneStage();
+                return;
+            }
+            if (gameState !== 'PLAYING') return;
+
+            if (e.code === 'Space' || e.code === 'ArrowUp') {
+                e.preventDefault();
+                if (selectedMode === 'player') {
+                    if (typeof window.dat155RecordHuman === 'function') window.dat155RecordHuman(1);
+                    tilcayito.jump();
+                }
+            }
+            if (e.code === 'ArrowDown') {
+                e.preventDefault();
+                if (selectedMode === 'player') {
+                    if (typeof window.dat155RecordHuman === 'function') window.dat155RecordHuman(2);
+                    keys.duck = true;
+                }
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowDown') {
+                keys.duck = false;
+                if (selectedMode === 'player') tilcayito.duck(false);
+            }
+        });
+
+        const touchJump = document.getElementById('btnTouchJump');
+        const touchDuck = document.getElementById('btnTouchDuck');
+
+        touchJump.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            initAudio();
+            if (gameState === 'PLAYING' && selectedMode === 'player') tilcayito.jump();
+        });
+        touchDuck.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            initAudio();
+            if (gameState === 'PLAYING' && selectedMode === 'player') keys.duck = true;
+        });
+        touchDuck.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            keys.duck = false;
+            if (selectedMode === 'player') tilcayito.duck(false);
+        });
+
+        canvas.addEventListener('mousedown', () => {
+            initAudio();
+            if (gameState === 'INTRO') dismissArcadeIntro();
+            else if (gameState === 'PLAYING' && selectedMode === 'player') tilcayito.jump();
+        });
+
+        window.onload = function() {
+            gameLoop();
+        };
+    </script>
+
+    <!-- Botón flotante para abrir el Dashboard DAT 155 -->
+    <div onclick="event.stopPropagation()" style="position:fixed;bottom:12px;left:12px;z-index:60;display:flex;gap:8px;align-items:center;">
+        <button type="button" onclick="event.stopPropagation(); toggleDat155Modal()" style="background:#052e16;color:#facc15;border:2px solid #22c55e;border-radius:8px;padding:8px 12px;font-size:10px;cursor:pointer;box-shadow:0 4px 0 #064e3b;">
+            🧠 DAT 155 IA
+        </button>
+        <button type="button" id="btnQuickAutoTrain" onclick="event.stopPropagation(); toggleAutoTrain()" style="background:#0f172a;color:#38bdf8;border:2px solid #38bdf8;border-radius:8px;padding:8px 10px;font-size:9px;cursor:pointer;box-shadow:0 4px 0 #0c4a6e;">
+            🔁 AUTO-ENTRENAR: OFF
+        </button>
+    </div>
+
+    <!-- Dashboard DAT 155 -->
+    <div id="dat155Modal" style="display:none;position:fixed;top:48px;left:12px;width:420px;max-width:calc(100vw - 24px);max-height:82vh;overflow-y:auto;z-index:9999;background:rgba(4,13,8,0.97);color:#e0f2fe;border:3px solid #22c55e;border-radius:10px;padding:14px;font-size:10px;line-height:1.6;box-shadow:0 12px 30px rgba(0,0,0,0.88);">
+        <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #15803d;padding-bottom:8px;margin-bottom:10px;">
+            <span style="color:#facc15;font-weight:bold;">PANEL IA — DAT 155</span>
+            <button type="button" onclick="toggleDat155Modal()" style="background:#14532d;color:#fff;border:1px solid #4ade80;border-radius:5px;padding:3px 8px;font-size:10px;cursor:pointer;">X</button>
+        </div>
+
+        <!-- Selector de Cerebro IA -->
+        <div style="background:#091a11;border:1px solid #166534;border-radius:8px;padding:10px;margin-bottom:10px;">
+            <div style="color:#38bdf8;margin-bottom:6px;">CEREBRO ACTIVO EN MODO IA</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px;">
+                <button type="button" id="modalBrainQL" onclick="selectAIBrain('q_learning')" style="background:#22c55e;color:#052e16;border:1px solid #86efac;border-radius:5px;padding:5px;font-size:8px;font-weight:bold;cursor:pointer;">Q-LEARNING</button>
+                <button type="button" id="modalBrainKNN" onclick="selectAIBrain('knn')" style="background:#1e293b;color:#cbd5e1;border:1px solid #475569;border-radius:5px;padding:5px;font-size:8px;cursor:pointer;">KNN HUMANO</button>
+                <button type="button" id="modalBrainRules" onclick="selectAIBrain('rules')" style="background:#1e293b;color:#cbd5e1;border:1px solid #475569;border-radius:5px;padding:5px;font-size:8px;cursor:pointer;">REGLAS FIJAS</button>
+            </div>
+            <label style="display:flex;align-items:center;gap:6px;cursor:pointer;color:#fde047;font-size:9px;">
+                <input id="chkAutoTrainModal" type="checkbox" onchange="toggleAutoTrain(this.checked)">
+                Auto-reiniciar episodios IA para entrenar continuo
+            </label>
+        </div>
+
+        <!-- Q-Learning + Curva de Aprendizaje -->
+        <div style="background:#091a11;border:1px solid #166534;border-radius:8px;padding:10px;margin-bottom:10px;">
+            <div style="color:#4ade80;margin-bottom:6px;">1. Q-LEARNING (BELLMAN RL)</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:#040d08;padding:8px;border-radius:6px;text-align:center;margin-bottom:8px;">
+                <div>
+                    <div style="color:#86efac;font-size:8px;">EPISODIOS</div>
+                    <div id="uiQlEpisodes" style="color:#facc15;font-size:12px;margin-top:2px;">0</div>
+                </div>
+                <div>
+                    <div style="color:#86efac;font-size:8px;">EPSILON (ε)</div>
+                    <div id="uiQlEpsilon" style="color:#38bdf8;font-size:12px;margin-top:2px;">0.35</div>
+                </div>
+                <div>
+                    <div style="color:#86efac;font-size:8px;">ESTADOS Q</div>
+                    <div id="uiQlStates" style="color:#4ade80;font-size:12px;margin-top:2px;">0</div>
+                </div>
+            </div>
+            <div style="color:#86efac;font-size:8px;margin-bottom:4px;">CURVA DE PUNTAJE POR EPISODIO RL:</div>
+            <canvas id="qlLearningChart" width="350" height="80" style="width:100%;height:80px;background:#040d08;border:1px solid #15803d;border-radius:6px;margin-bottom:8px;"></canvas>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                <button type="button" onclick="resetDat155QL()" style="background:#7f1d1d;color:#fecaca;border:1px solid #ef4444;border-radius:5px;padding:5px 7px;font-size:9px;cursor:pointer;">RESET Q</button>
+                <button type="button" onclick="exportDat155Json()" style="background:#14532d;color:#bbf7d0;border:1px solid #22c55e;border-radius:5px;padding:5px 7px;font-size:9px;cursor:pointer;">JSON</button>
+                <button type="button" onclick="exportDat155Csv()" style="background:#1e3a8a;color:#bfdbfe;border:1px solid #60a5fa;border-radius:5px;padding:5px 7px;font-size:9px;cursor:pointer;">CSV</button>
+            </div>
+        </div>
+
+        <!-- Supervisado + Matriz de Confusión -->
+        <div style="background:#091a11;border:1px solid #166534;border-radius:8px;padding:10px;margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <span style="color:#fde047;">2. SUPERVISADO (KNN)</span>
+                <span id="uiHumanCount" style="color:#86efac;font-size:9px;">MUESTRAS: 0</span>
+            </div>
+            <div style="color:#cbd5e1;font-size:8px;margin-bottom:6px;">
+                Juega en Un Jugador para grabar acciones, evalua KNN (80/20) o pon a la IA a imitarte.
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+                <button type="button" onclick="evalDat155KNN()" style="background:#ca8a04;color:#040d08;border:1px solid #fef08a;border-radius:5px;padding:5px 8px;font-size:9px;font-weight:bold;cursor:pointer;">MATRIZ CONFUSION</button>
+                <button type="button" onclick="clearDat155Human()" style="background:#1e293b;color:#e2e8f0;border:1px solid #64748b;border-radius:5px;padding:5px 8px;font-size:9px;cursor:pointer;">BORRAR</button>
+            </div>
+            <pre id="uiConfusionBox" style="background:#040d08;padding:8px;border-radius:6px;font-size:8px;color:#e2e8f0;white-space:pre-wrap;margin:0;">Sin evaluacion aun.</pre>
+        </div>
+
+        <!-- A/B Testing -->
+        <div style="background:#091a11;border:1px solid #166534;border-radius:8px;padding:10px;margin-bottom:10px;">
+            <div style="color:#c084fc;margin-bottom:6px;">3. A/B TESTING (COMPARATIVA)</div>
+            <pre id="uiAbBox" style="background:#040d08;padding:8px;border-radius:6px;font-size:8px;color:#e2e8f0;white-space:pre-wrap;margin:0;">Juega o corre la IA para registrar partidas.</pre>
+        </div>
+
+        <!-- Bitácora de Aprendizaje y Resultados -->
+        <div style="background:#091a11;border:1px solid #166534;border-radius:8px;padding:10px;">
+            <div style="color:#38bdf8;margin-bottom:6px;">4. REGISTRO DE APRENDIZAJE</div>
+            <pre id="uiLearningLogBox" style="background:#040d08;padding:8px;border-radius:6px;font-size:8px;color:#cbd5e1;white-space:pre-wrap;max-height:110px;overflow-y:auto;margin:0;">Aun no hay eventos registrados.</pre>
+        </div>
+    </div>
+
+    <script>
+    (function() {
+        const KEYS = {
+            qTable: 'escape_yungas_qtable_v2',
+            qMeta: 'escape_yungas_qmeta_v2',
+            qHistory: 'escape_yungas_qhist_v2',
+            human: 'escape_yungas_human_v2',
+            ab: 'escape_yungas_ab_v2'
+        };
+
+        const ACTIONS = 3;
+        const ACTION_NAMES = ['CORRER', 'SALTAR', 'AGACHAR'];
+        const ALPHA = 0.28;
+        const GAMMA = 0.90;
+
+        let activeAIBrain = 'q_learning';
+        let autoTrainLoop = false;
+        let autoRestartTimer = null;
+
+        let qTable = JSON.parse(localStorage.getItem(KEYS.qTable) || '{}');
+        let qMeta = JSON.parse(localStorage.getItem(KEYS.qMeta) || '{"episodes":0,"epsilon":0.35}');
+        let qHistory = JSON.parse(localStorage.getItem(KEYS.qHistory) || '[]');
+        let humanData = JSON.parse(localStorage.getItem(KEYS.human) || '[]');
+        let abRuns = JSON.parse(localStorage.getItem(KEYS.ab) || '[]');
+
+        let lastState = null;
+        let lastAction = null;
+        let lastScore = 0;
+        let runRecorded = false;
+        let recentTransitions = [];
+        let passedObstacleIds = new Set();
+
+        let liveTelemetry = {
+            state: '---',
+            action: 'CORRER',
+            qVals: [0, 0, 0],
+            isExplore: false
+        };
+
+        function getNextObstacleInfo() {
+            if (!Array.isArray(obstacles) || typeof tilcayito === 'undefined') {
+                return { found: false, dist: 999, type: 'none', y: 0, speed: gameSpeed || 6 };
+            }
+            const nextObs = obstacles.find(o => o.x + o.width >= tilcayito.x - 4);
+            if (!nextObs) {
+                return { found: false, dist: 999, type: 'none', y: 0, speed: gameSpeed };
+            }
+            return {
+                found: true,
+                dist: Math.max(0, nextObs.x - (tilcayito.x + tilcayito.width)),
+                type: nextObs.type,
+                y: nextObs.y,
+                speed: gameSpeed
+            };
+        }
+
+        function buildFeatureVector(info) {
+            const tNum = info.type === 'rock' ? 1 : (info.type === 'log' ? 2 : (info.type === 'bird' ? 3 : 0));
+            return [
+                Number((Math.min(320, info.dist) / 320).toFixed(3)),
+                tNum,
+                Number((info.y / 300).toFixed(3)),
+                Number((info.speed / 15).toFixed(3)),
+                tilcayito.isGrounded ? 1 : 0
+            ];
+        }
+
+        function encodeState() {
+            const info = getNextObstacleInfo();
+            let dBin = 4;
+            if (info.dist < 60) dBin = 0;
+            else if (info.dist < 115) dBin = 1;
+            else if (info.dist < 185) dBin = 2;
+            else if (info.dist < 275) dBin = 3;
+
+            const tCode = info.type === 'rock' ? 1 : (info.type === 'log' ? 2 : (info.type === 'bird' ? 3 : 0));
+            const hBin = !info.found ? 0 : (info.y < 245 ? 1 : 2);
+            const sBin = info.speed < 7.5 ? 0 : (info.speed < 10.5 ? 1 : 2);
+            const gCode = tilcayito.isGrounded ? 1 : 0;
+
+            return `${dBin}-${tCode}-${hBin}-${sBin}-${gCode}`;
+        }
+
+        function getQ(s) {
+            if (!qTable[s]) qTable[s] = [0, 0, 0];
+            return qTable[s];
+        }
+
+        function updateQ(s, a, r, nextS, terminal) {
+            if (!s || a === null || a === undefined) return;
+            const qS = getQ(s);
+            const maxNext = terminal ? 0 : Math.max(...getQ(nextS));
+            qS[a] = qS[a] + ALPHA * (r + GAMMA * maxNext - qS[a]);
+        }
+
+        function persistQL() {
+            localStorage.setItem(KEYS.qTable, JSON.stringify(qTable));
+            localStorage.setItem(KEYS.qMeta, JSON.stringify(qMeta));
+            localStorage.setItem(KEYS.qHistory, JSON.stringify(qHistory.slice(-60)));
+        }
+
+        function executeCharacterAction(action) {
+            if (action === 1) {
+                keys.duck = false;
+                tilcayito.duck(false);
+                if (tilcayito.isGrounded) tilcayito.jump();
+            } else if (action === 2) {
+                keys.duck = true;
+                if (tilcayito.isGrounded) tilcayito.duck(true);
+            } else {
+                keys.duck = false;
+                if (tilcayito.isGrounded) tilcayito.duck(false);
+            }
+        }
+
+        function predictKNN(featureVec, dataset) {
+            if (!dataset || dataset.length === 0) return 0;
+            const k = Math.min(5, Math.max(1, Math.floor(Math.sqrt(dataset.length))));
+            const neighbors = dataset.map(tr => {
+                let d2 = 0;
+                for (let i = 0; i < tr.x.length; i++) {
+                    const diff = tr.x[i] - featureVec[i];
+                    d2 += diff * diff;
+                }
+                return { d2, y: tr.y };
+            }).sort((a, b) => a.d2 - b.d2).slice(0, k);
+
+            const votes = { 0: 0, 1: 0, 2: 0 };
+            for (const n of neighbors) votes[n.y] = (votes[n.y] || 0) + 1;
+            return Number(Object.entries(votes).sort((a, b) => b[1] - a[1])[0][0]);
+        }
+
+        window.dat155RunAI = function() {
+            if (gameState !== 'PLAYING' || selectedMode !== 'ai') return false;
+            runRecorded = false;
+
+            if (activeAIBrain === 'rules') {
+                liveTelemetry = { state: 'REGLAS', action: 'AUTO', qVals: [0, 0, 0], isExplore: false };
+                return false;
+            }
+
+            if (activeAIBrain === 'knn') {
+                const info = getNextObstacleInfo();
+                const action = (info.found && info.dist <= 320 && humanData.length >= 5)
+                    ? predictKNN(buildFeatureVector(info), humanData)
+                    : 0;
+                executeCharacterAction(action);
+                liveTelemetry = {
+                    state: `${info.type}:${Math.round(info.dist)}px`,
+                    action: ACTION_NAMES[action],
+                    qVals: [0, 0, 0],
+                    isExplore: false
+                };
+                return true;
+            }
+
+            const curState = encodeState();
+            const deltaScore = Math.max(0, score - lastScore);
+            lastScore = score;
+
+            let dodgeBonus = 0;
+            if (Array.isArray(obstacles)) {
+                obstacles.forEach((o, idx) => {
+                    const obsKey = `${idx}_${Math.round(o.y)}_${o.type}_${Math.floor(score / 25)}`;
+                    if (o.x + o.width < tilcayito.x && !passedObstacleIds.has(obsKey)) {
+                        passedObstacleIds.add(obsKey);
+                        dodgeBonus += 14;
+                    }
+                });
+                if (passedObstacleIds.size > 120) {
+                    passedObstacleIds = new Set(Array.from(passedObstacleIds).slice(-60));
+                }
+            }
+
+            if (lastState !== null && lastAction !== null) {
+                const reward = 0.35 + deltaScore * 0.8 + dodgeBonus;
+                updateQ(lastState, lastAction, reward, curState, false);
+            }
+
+            const qVals = getQ(curState);
+            let action = 0;
+            let exploring = false;
+            if (Math.random() < qMeta.epsilon) {
+                action = Math.floor(Math.random() * ACTIONS);
+                exploring = true;
+            } else {
+                for (let i = 1; i < ACTIONS; i++) {
+                    if (qVals[i] > qVals[action]) action = i;
+                }
+            }
+
+            executeCharacterAction(action);
+            lastState = curState;
+            lastAction = action;
+            recentTransitions.push({ s: curState, a: action });
+            if (recentTransitions.length > 6) recentTransitions.shift();
+            liveTelemetry = {
+                state: curState,
+                action: ACTION_NAMES[action],
+                qVals: qVals.map(v => Number(v.toFixed(1))),
+                isExplore: exploring
+            };
+            return true;
+        };
+
+        window.dat155DrawCanvasHUD = function(c) {
+            c.save();
+            c.textAlign = 'left';
+            c.font = '8px "Press Start 2P"';
+
+            if (selectedMode === 'ai') {
+                c.fillStyle = 'rgba(4, 13, 8, 0.72)';
+                c.fillRect(16, 40, 430, 38);
+                c.strokeStyle = '#22c55e';
+                c.lineWidth = 1.5;
+                c.strokeRect(16, 40, 430, 38);
+
+                if (activeAIBrain === 'q_learning') {
+                    c.fillStyle = '#38bdf8';
+                    c.fillText(`Q-LEARN EP:${qMeta.episodes} ε:${Number(qMeta.epsilon).toFixed(2)} EST:${Object.keys(qTable).length}`, 24, 54);
+                    c.fillStyle = liveTelemetry.isExplore ? '#fbbf24' : '#4ade80';
+                    c.fillText(`S:${liveTelemetry.state} -> ${liveTelemetry.action} ${liveTelemetry.isExplore ? '[EXP]' : '[OPT]'}`, 24, 70);
+                } else if (activeAIBrain === 'knn') {
+                    c.fillStyle = '#fde047';
+                    c.fillText(`KNN IMITACION | MUESTRAS:${humanData.length}`, 24, 54);
+                    c.fillStyle = '#4ade80';
+                    c.fillText(`${liveTelemetry.state} -> ${liveTelemetry.action}`, 24, 70);
+                } else {
+                    c.fillStyle = '#cbd5e1';
+                    c.fillText(`IA REGLAS FIJAS (BASELINE)`, 24, 60);
+                }
+            } else {
+                c.fillStyle = 'rgba(4, 13, 8, 0.65)';
+                c.fillRect(16, 40, 250, 22);
+                c.fillStyle = '#fde047';
+                c.fillText(`MUESTRAS KNN: ${humanData.length}`, 24, 55);
+            }
+            c.restore();
+        };
+
+        window.dat155OnGameOver = function() {
+            if (runRecorded) return;
+            runRecorded = true;
+
+            const finalPts = Math.round(score || 0);
+
+            if (selectedMode === 'ai' && activeAIBrain === 'q_learning' && lastState !== null && lastAction !== null) {
+                const termState = encodeState();
+                updateQ(lastState, lastAction, -100, termState, true);
+                for (let k = recentTransitions.length - 2, stepBack = 1; k >= 0; k--, stepBack++) {
+                    const tr = recentTransitions[k];
+                    const pen = -35 * Math.pow(0.6, stepBack);
+                    updateQ(tr.s, tr.a, pen, termState, false);
+                }
+                qMeta.episodes += 1;
+                qMeta.epsilon = Math.max(0.05, Number((qMeta.epsilon * 0.985).toFixed(4)));
+                qHistory.push(finalPts);
+                persistQL();
+                const epNum = qMeta.episodes;
+                const ordLabel = epNum === 1 ? '1ra' : (epNum === 2 ? '2da' : (epNum === 3 ? '3ra' : `${epNum}ta`));
+                pushLearningLog(`${ordLabel} partida (${selectedDiff}) -> ${finalPts} pts | ε=${Number(qMeta.epsilon).toFixed(2)} | Estados=${Object.keys(qTable).length}`);
+            }
+
+            if (finalPts >= 0) {
+                const engineLabel = selectedMode === 'ai' ? activeAIBrain : 'human';
+                abRuns.push({
+                    mode: selectedMode,
+                    diff: selectedDiff,
+                    engine: engineLabel,
+                    score: finalPts,
+                    ts: new Date().toISOString()
+                });
+                abRuns = abRuns.slice(-300);
+                localStorage.setItem(KEYS.ab, JSON.stringify(abRuns));
+                if (!(selectedMode === 'ai' && activeAIBrain === 'q_learning')) {
+                    const runIdx = abRuns.length;
+                    const ordRun = runIdx === 1 ? '1ra' : (runIdx === 2 ? '2da' : (runIdx === 3 ? '3ra' : `${runIdx}ta`));
+                    pushLearningLog(`${ordRun} partida [${engineLabel}/${selectedDiff}] -> ${finalPts} pts`);
+                }
+            }
+
+            lastState = null;
+            lastAction = null;
+            lastScore = 0;
+            recentTransitions = [];
+            passedObstacleIds.clear();
+            refreshDat155UI();
+
+            if (autoTrainLoop && selectedMode === 'ai') {
+                if (autoRestartTimer) clearTimeout(autoRestartTimer);
+                autoRestartTimer = setTimeout(() => {
+                    if (autoTrainLoop && gameState === 'GAMEOVER' && selectedMode === 'ai') {
+                        restartGame();
+                    }
+                }, 900);
+            }
+        };
+
+        window.dat155RecordHuman = function(label) {
+            if (gameState !== 'PLAYING' || selectedMode !== 'player') return;
+            const info = getNextObstacleInfo();
+            if (!info.found || info.dist > 320) return;
+
+            humanData.push({
+                x: buildFeatureVector(info),
+                y: label
+            });
+            humanData = humanData.slice(-1500);
+            localStorage.setItem(KEYS.human, JSON.stringify(humanData));
+            refreshDat155UI();
+        };
+
+        let learningLog = JSON.parse(localStorage.getItem('escape_yungas_log_v1') || '[]');
+
+        function pushLearningLog(msg) {
+            const stamp = new Date().toLocaleTimeString('es-BO', { hour12: false });
+            learningLog.unshift(`[${stamp}] ${msg}`);
+            learningLog = learningLog.slice(0, 25);
+            localStorage.setItem('escape_yungas_log_v1', JSON.stringify(learningLog));
+            renderLearningLog();
+        }
+
+        function renderLearningLog() {
+            const logBox = document.getElementById('uiLearningLogBox');
+            if (!logBox) return;
+            if (!learningLog.length) {
+                logBox.textContent = 'Aun no hay eventos registrados.';
+            } else {
+                logBox.textContent = learningLog.join('\n');
+            }
+        }
+
+        window.selectAIBrain = function(brain) {
+            if (typeof playSoundEffect === 'function') {
+                try { playSoundEffect('select'); } catch (e) {}
+            }
+            activeAIBrain = brain;
+            const styles = {
+                q_learning: ['btnBrainQL', 'modalBrainQL'],
+                knn: ['btnBrainKNN', 'modalBrainKNN'],
+                rules: ['btnBrainRules', 'modalBrainRules']
+            };
+            Object.entries(styles).forEach(([key, ids]) => {
+                const active = key === brain;
+                const bMenu = document.getElementById(ids[0]);
+                const bModal = document.getElementById(ids[1]);
+                if (bMenu) {
+                    bMenu.style.backgroundColor = active ? '#06b6d4' : '#1e293b';
+                    bMenu.style.color = active ? '#020617' : '#d1d5db';
+                    bMenu.style.borderColor = active ? '#a5f3fc' : '#4b5563';
+                }
+                if (bModal) {
+                    bModal.style.backgroundColor = active ? '#22c55e' : '#1e293b';
+                    bModal.style.color = active ? '#052e16' : '#cbd5e1';
+                    bModal.style.borderColor = active ? '#86efac' : '#475569';
+                }
+            });
+            const labelMap = {
+                q_learning: 'Q-Learn',
+                knn: 'Imitar KNN',
+                rules: 'Reglas'
+            };
+            pushLearningLog(`Cerebro seleccionado: ${labelMap[brain] || brain}`);
+            refreshDat155UI();
+        };
+
+        window.toggleAutoTrain = function(forceVal) {
+            autoTrainLoop = typeof forceVal === 'boolean' ? forceVal : !autoTrainLoop;
+            const btn = document.getElementById('btnQuickAutoTrain');
+            const chk = document.getElementById('chkAutoTrainModal');
+            if (chk) chk.checked = autoTrainLoop;
+            if (btn) {
+                btn.textContent = autoTrainLoop ? '🔁 AUTO-ENTRENAR: ON' : '🔁 AUTO-ENTRENAR: OFF';
+                btn.style.background = autoTrainLoop ? '#065f46' : '#0f172a';
+                btn.style.color = autoTrainLoop ? '#fde047' : '#38bdf8';
+            }
+            if (autoTrainLoop) {
+                if (typeof selectMode === 'function') selectMode('ai');
+                const introEl = document.getElementById('arcadeIntro');
+                if (introEl) {
+                    introEl.dataset.dismissed = '1';
+                    introEl.classList.add('hidden');
+                }
+                const menuEl = document.getElementById('mainMenu');
+                if (menuEl) menuEl.classList.add('hidden');
+                const csEl = document.getElementById('cutsceneOverlay');
+                if (csEl) csEl.classList.add('hidden');
+                if (gameState !== 'PLAYING' && typeof startActualRunner === 'function') {
+                    startActualRunner();
+                }
+            } else if (autoRestartTimer) {
+                clearTimeout(autoRestartTimer);
+            }
+        };
+
+        window.evalDat155KNN = function() {
+            const box = document.getElementById('uiConfusionBox');
+            if (humanData.length < 15) {
+                box.textContent = `Necesitas >= 15 muestras (tienes ${humanData.length}). Juega en Un Jugador.`;
+                return;
+            }
+            const shuffled = [...humanData].sort(() => Math.random() - 0.5);
+            const split = Math.floor(shuffled.length * 0.8);
+            const train = shuffled.slice(0, split);
+            const test = shuffled.slice(split);
+            const k = Math.min(5, Math.max(1, Math.floor(Math.sqrt(train.length))));
+
+            const cm = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+            let ok = 0;
+
+            for (const row of test) {
+                const pred = predictKNN(row.x, train);
+                if (pred === row.y) ok++;
+                if (cm[row.y] && cm[row.y][pred] !== undefined) cm[row.y][pred]++;
+            }
+
+            const acc = test.length > 0 ? ((ok / test.length) * 100).toFixed(1) : '0.0';
+            pushLearningLog(`KNN eval (n=${humanData.length}) -> Acc ${acc}%`);
+            box.textContent =
+                `KNN k=${k} | Train:${train.length} Test:${test.length} | Acc:${acc}%\n` +
+                `Real\\Pred [Nada,Salt,Agach]\n` +
+                `Nada : [${cm[0].join(',')}]\n` +
+                `Salt : [${cm[1].join(',')}]\n` +
+                `Agach: [${cm[2].join(',')}]`;
+        };
+
+        function rebuildLogFromRunsIfEmpty() {
+            if (learningLog.length === 0 && Array.isArray(abRuns) && abRuns.length > 0) {
+                learningLog = abRuns.slice(-25).reverse().map((r, idxFromEnd) => {
+                    const runNum = abRuns.length - idxFromEnd;
+                    const ord = runNum === 1 ? '1ra' : (runNum === 2 ? '2da' : (runNum === 3 ? '3ra' : `${runNum}ta`));
+                    const t = r.ts ? new Date(r.ts).toLocaleTimeString('es-BO', { hour12: false }) : '--:--:--';
+                    return `[${t}] ${ord} partida [${r.engine}/${r.diff}] -> ${r.score} pts`;
+                });
+                localStorage.setItem('escape_yungas_log_v1', JSON.stringify(learningLog));
+            }
+        }
+
+        window.toggleDat155Modal = function() {
+            const el = document.getElementById('dat155Modal');
+            if (!el) return;
+            const willOpen = (el.style.display === 'none' || !el.style.display);
+            el.style.display = willOpen ? 'block' : 'none';
+            if (willOpen) {
+                rebuildLogFromRunsIfEmpty();
+                if (learningLog.length === 0) {
+                    pushLearningLog('Panel DAT 155 listo. Selecciona cerebro y corre partidas para ver el historial 1ra, 2da, 3ra...');
+                }
+                renderLearningLog();
+                refreshDat155UI();
+            }
+        };
+
+        window.resetDat155QL = function() {
+            qTable = {};
+            qMeta = { episodes: 0, epsilon: 0.35 };
+            qHistory = [];
+            persistQL();
+            refreshDat155UI();
+        };
+
+        window.clearDat155Human = function() {
+            humanData = [];
+            localStorage.removeItem(KEYS.human);
+            document.getElementById('uiConfusionBox').textContent = 'Muestras borradas.';
+            refreshDat155UI();
+        };
+
+        window.exportDat155Json = function() {
+            const blob = new Blob([JSON.stringify({ qMeta, qHistory, qTable, humanData, abRuns }, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'dat155_yungas_completo.json';
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        window.exportDat155Csv = function() {
+            const csv = 'mode,diff,engine,score,ts\n' + abRuns.map(r => `${r.mode},${r.diff},${r.engine},${r.score},${r.ts}`).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'dat155_ab_testing.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        };
+
+        function drawLearningCurve() {
+            const chart = document.getElementById('qlLearningChart');
+            if (!chart) return;
+            const g = chart.getContext('2d');
+            g.clearRect(0, 0, chart.width, chart.height);
+
+            if (qHistory.length < 2) {
+                g.fillStyle = '#64748b';
+                g.font = '9px monospace';
+                g.fillText('Corre >= 2 episodios IA para ver la curva', 14, 44);
+                return;
+            }
+
+            const maxVal = Math.max(10, ...qHistory);
+            const padX = 12;
+            const padY = 10;
+            const w = chart.width - padX * 2;
+            const h = chart.height - padY * 2;
+
+            g.strokeStyle = '#22c55e';
+            g.lineWidth = 2;
+            g.beginPath();
+            qHistory.forEach((val, idx) => {
+                const x = padX + (idx / (qHistory.length - 1)) * w;
+                const y = padY + h - (val / maxVal) * h;
+                if (idx === 0) g.moveTo(x, y);
+                else g.lineTo(x, y);
+            });
+            g.stroke();
+
+            g.fillStyle = '#facc15';
+            g.font = '9px monospace';
+            g.fillText(`Max: ${maxVal} pts | Ult: ${qHistory[qHistory.length - 1]} pts`, 12, 12);
+        }
+
+        function refreshDat155UI() {
+            rebuildLogFromRunsIfEmpty();
+            renderLearningLog();
+            const ep = document.getElementById('uiQlEpisodes');
+            const eps = document.getElementById('uiQlEpsilon');
+            const st = document.getElementById('uiQlStates');
+            const hc = document.getElementById('uiHumanCount');
+            const ab = document.getElementById('uiAbBox');
+
+            if (ep) ep.textContent = String(qMeta.episodes || 0);
+            if (eps) eps.textContent = Number(qMeta.epsilon || 0.35).toFixed(2);
+            if (st) st.textContent = String(Object.keys(qTable).length);
+            if (hc) hc.textContent = `MUESTRAS: ${humanData.length}`;
+
+            drawLearningCurve();
+
+            if (ab) {
+                if (!abRuns.length) {
+                    ab.textContent = 'Juega o corre la IA para registrar partidas.';
+                } else {
+                    const groups = {};
+                    for (const r of abRuns) {
+                        const key = `${r.engine} (${r.diff})`;
+                        if (!groups[key]) groups[key] = { sum: 0, n: 0 };
+                        groups[key].sum += r.score;
+                        groups[key].n += 1;
+                    }
+                    ab.textContent = Object.entries(groups)
+                        .map(([k, v]) => `${k}: ${(v.sum / v.n).toFixed(1)} pts (n=${v.n})`)
+                        .join('\n');
+                }
+            }
+        }
+
+        ['btnBrainQL', 'btnBrainKNN', 'btnBrainRules', 'modalBrainQL', 'modalBrainKNN', 'modalBrainRules'].forEach(id => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                const mapBrain = id.includes('QL') ? 'q_learning' : (id.includes('KNN') ? 'knn' : 'rules');
+                btn.addEventListener('click', (ev) => {
+                    ev.stopPropagation();
+                    window.selectAIBrain(mapBrain);
+                });
+            }
+        });
+        renderLearningLog();
+        refreshDat155UI();
+    })();
+    </script>
+
+</body>
+</html>
